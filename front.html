@@ -90,12 +90,12 @@
     
     <!-- Color Panel -->
     <div class="color-selector">
-      <div class="color-box" style="background-color: yellow;" data-color="U"></div>
-      <div class="color-box" style="background-color: white;" data-color="D"></div>
-      <div class="color-box" style="background-color: red;" data-color="R"></div>
-      <div class="color-box" style="background-color: orange;" data-color="F"></div>
-      <div class="color-box" style="background-color: green;" data-color="L"></div>
-      <div class="color-box" style="background-color: blue;" data-color="B"></div>
+      <div class="color-box" style="background-color: yellow;" data-color="yellow"></div>
+      <div class="color-box" style="background-color: white;" data-color="white"></div>
+      <div class="color-box" style="background-color: red;" data-color="red"></div>
+      <div class="color-box" style="background-color: orange;" data-color="orange"></div>
+      <div class="color-box" style="background-color: green;" data-color="green"></div>
+      <div class="color-box" style="background-color: blue;" data-color="blue"></div>
     </div>
     
     <!-- Control Buttons -->
@@ -125,33 +125,20 @@
       <div class="placeholder"></div>
       <div class="placeholder"></div>
     </div>
-
-    <!-- Solution Display -->
-    <div id="solution" style="margin-top: 20px; text-align: center; font-size: 18px;"></div>
   </div>
   
   <script>
-    let selectedColor = "U";
+    let selectedColor = "yellow";
     const faces = ["up", "down", "left", "right", "front", "back"];
 
     // Fixed center colors
     const fixedCenters = {
-      up: "U",
-      down: "D",
-      left: "L",
-      front: "F",
-      right: "R",
-      back: "B"
-    };
-
-    // Color mapping for display
-    const colorMap = {
-      "U": "yellow",
-      "D": "white",
-      "R": "red",
-      "F": "orange",
-      "L": "green",
-      "B": "blue"
+      up: "yellow",
+      down: "white",
+      left: "green",
+      front: "orange",
+      right: "blue",
+      back: "red"
     };
 
     // Initialize cube net with solved state
@@ -163,18 +150,15 @@
           const square = document.createElement("div");
           square.classList.add("cube-square");
           if (i === 4) {
-            square.style.backgroundColor = colorMap[fixedCenters[face]]; // Fixed center color
+            square.style.backgroundColor = fixedCenters[face]; // Fixed center color
             square.dataset.fixed = "true";
-            square.dataset.color = fixedCenters[face];
           } else {
             square.style.backgroundColor = "#ccc";
-            square.dataset.color = "";
           }
           // Allow user to paint non-fixed squares
           square.addEventListener("click", function() {
             if (!this.dataset.fixed) {
-              this.style.backgroundColor = colorMap[selectedColor];
-              this.dataset.color = selectedColor;
+              this.style.backgroundColor = selectedColor;
             }
           });
           faceDiv.appendChild(square);
@@ -191,8 +175,7 @@
             const faceDiv = document.getElementById(face);
             Array.from(faceDiv.children).forEach((square, index) => {
               if (index !== 4) { // Skip the center square
-                square.style.backgroundColor = colorMap[data.cube_state[face][index]];
-                square.dataset.color = data.cube_state[face][index];
+                square.style.backgroundColor = data.cube_state[face][index];
               }
             });
           });
@@ -204,56 +187,19 @@
         });
     }
 
-    // Solve the cube
+    // Solve and reset functions (reset to solved state)
     function solveCube() {
-      // Get current cube state
-      const cubeState = {};
-      faces.forEach(face => {
-        const faceDiv = document.getElementById(face);
-        cubeState[face] = Array.from(faceDiv.children).map(square => square.dataset.color || "U");
-      });
-
-      // Send cube state to backend
-      fetch("http://127.0.0.1:5000/solve", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ cube_state: cubeState })
-      })
-        .then(response => response.json())
-        .then(data => {
-          if (data.solution) {
-            document.getElementById("solution").innerText = `Solution: ${data.solution}`;
-          } else {
-            document.getElementById("solution").innerText = `Error: ${data.error}`;
-          }
-        })
-        .catch(error => {
-          console.error("Error solving cube:", error);
-          document.getElementById("solution").innerText = "Failed to solve cube. Check the console for details.";
-        });
+      initializeCube();
     }
 
-    // Reset the cube
     function resetCube() {
       initializeCube();
-      document.getElementById("solution").innerText = "";
     }
 
-    // Event listeners for color selection
-    document.querySelectorAll(".color-box").forEach(box => {
-      box.addEventListener("click", function() {
-        selectedColor = this.dataset.color;
-      });
-    });
-
-    // Event listeners for buttons
     document.getElementById("scrambleBtn").addEventListener("click", scrambleCube);
     document.getElementById("solveBtn").addEventListener("click", solveCube);
     document.getElementById("resetBtn").addEventListener("click", resetCube);
 
-    // Initialize cube on page load
     initializeCube();
   </script>
 </body>
