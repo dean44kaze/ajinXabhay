@@ -23,10 +23,8 @@ def scramble_cube():
     for face, center_color in fixed_centers.items():
         cube[face][4] = center_color  # Center tile (index 4)
 
-    # Create a list of available tiles (each color appears 8 times in total)
-    available_tiles = []
-    for color in fixed_centers.values():
-        available_tiles.extend([color] * 8)  # 8 tiles per color
+    # Create a list of available tiles (each color appears 9 times in total)
+    available_tiles = sum([[color] * 8 for color in fixed_centers.values()], [])  # 8 tiles per color
 
     # Shuffle available tiles to ensure randomness
     random.shuffle(available_tiles)
