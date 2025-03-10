@@ -1,45 +1,89 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 import random
+import solver  # Import the local solver.py file
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})  # Allow requests from any origin
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allow frontend requests
 
-# Fixed center colors for each face
+# Fixed center colors (based on correct cube net positioning)
 fixed_centers = {
-    "up": "yellow",
-    "down": "white",
-    "left": "green",
-    "front": "orange",
-    "right": "blue",
-    "back": "red"
+    "up": "U",
+    "down": "D",
+    "left": "L",
+    "right": "R",
+    "front": "F",
+    "back": "B"
 }
 
-# Function to generate a scrambled cube state (excluding centers)
+# Function to generate a scrambled cube state
 def scramble_cube():
-    cube = {face: [None] * 9 for face in fixed_centers.keys()}  # Initialize cube faces
+    cube = {face: [None] * 9 for face in fixed_centers.keys()}  # Initialize faces
 
     # Set fixed center colors
     for face, center_color in fixed_centers.items():
         cube[face][4] = center_color  # Center tile (index 4)
 
-    # Create a list of available tiles (each color appears 9 times in total)
-    available_tiles = sum([[color] * 8 for color in fixed_centers.values()], [])  # 8 tiles per color
+    # Create a list of available tiles (each color appears 8 times)
+    available_tiles = []
+    for color in fixed_centers.values():
+        available_tiles.extend([color] * 8)  # 8 tiles per color
 
-    # Shuffle available tiles to ensure randomness
+    # Shuffle tiles to randomize
     random.shuffle(available_tiles)
 
     # Assign scrambled colors to non-center positions
     for face in cube:
         for i in range(9):
-            if i != 4:  # Skip center position
+            if i != 4:  # Skip center tile
                 cube[face][i] = available_tiles.pop()
 
     return cube
 
+# Function to convert cube state to Kociemba notation
+def cube_to_kociemba(cube):
+    """
+    Kociemba expects a 54-character string in the order: U, R, F, D, L, B
+    We need to remap our cube net to this format.
+    """
+
+    face_mapping = {
+        "up":  "U",
+        "right": "R",
+        "front": "F",
+        "down": "D",
+        "left": "L",
+        "back": "B"
+    }
+
+    # Convert cube dictionary into a Kociemba formatted string
+    kociemba_input = ""
+    for face in ["up", "right", "front", "down", "left", "back"]:
+        for tile in cube[face]:
+            kociemba_input += tile  # Build the cube string
+
+    return kociemba_input
+
 @app.route('/scramble', methods=['GET'])
 def scramble():
-    return jsonify({"cube_state": scramble_cube()})  # Return JSON response
+    scrambled_cube = scramble_cube()
+    return jsonify({"cube_state": scrambled_cube})
+
+@app.route('/solve', methods=['POST'])
+def solve():
+    try:
+        # Get cube state from frontend
+        cube_state = request.json.get("cube_state")
+
+        # Convert to Kociemba format
+        kociemba_input = cube_to_kociemba(cube_state)
+
+        # Solve using the local solver.py
+        solution = solver.solve(kociemba_input)  # solver.py provides the solve() function
+
+        return jsonify({"solution": solution})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route("/")
 def home():
