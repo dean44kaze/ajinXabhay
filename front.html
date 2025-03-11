@@ -83,46 +83,66 @@
 <body>
   <div id="container">
     <h1>Interactive Rubik's Cube (2D Cube Net)</h1>
+    
     <div class="color-selector">
-      <div class="color-box" style="background-color: white;" data-color="white"></div>
-      <div class="color-box" style="background-color: yellow;" data-color="yellow"></div>
-      <div class="color-box" style="background-color: orange;" data-color="orange"></div>
-      <div class="color-box" style="background-color: red;" data-color="red"></div>
-      <div class="color-box" style="background-color: green;" data-color="green"></div>
-      <div class="color-box" style="background-color: blue;" data-color="blue"></div>
+      <div class="color-box" style="background-color: white;" data-color="U"></div>
+      <div class="color-box" style="background-color: yellow;" data-color="D"></div>
+      <div class="color-box" style="background-color: red;" data-color="R"></div>
+      <div class="color-box" style="background-color: green;" data-color="F"></div>
+      <div class="color-box" style="background-color: orange;" data-color="L"></div>
+      <div class="color-box" style="background-color: blue;" data-color="B"></div>
     </div>
+    
+    
     <div id="controls">
       <button id="scrambleBtn">Scramble</button>
       <button id="solveBtn">Solve</button>
       <button id="resetBtn">Reset</button>
     </div>
+    
     <div class="cube-net">
       <div class="placeholder"></div>
       <div class="cube-face" id="up"></div>
       <div class="placeholder"></div>
       <div class="placeholder"></div>
+      
       <div class="cube-face" id="left"></div>
       <div class="cube-face" id="front"></div>
       <div class="cube-face" id="right"></div>
       <div class="cube-face" id="back"></div>
+      
       <div class="placeholder"></div>
       <div class="cube-face" id="down"></div>
       <div class="placeholder"></div>
       <div class="placeholder"></div>
     </div>
+
+    <div id="solution" style="margin-top: 20px; text-align: center; font-size: 18px;"></div>
   </div>
+  
   <script>
-    let selectedColor = "white";
+    let selectedColor = "U";
     const faces = ["up", "down", "left", "right", "front", "back"];
 
     const fixedCenters = {
-      up: "white",
-      down: "yellow",
-      left: "orange",
-      front: "green",
-      right: "red",
-      back: "blue"
-    };
+  up: "U",
+  down: "D",
+  left: "L",
+  front: "F",
+  right: "R",
+  back: "B"
+};
+
+
+    const colorMap = {
+  "U": "white",
+  "D": "yellow",
+  "F": "green",
+  "B": "blue",
+  "L": "orange",
+  "R": "red"
+};
+
 
     function initializeCube() {
       faces.forEach(face => {
@@ -132,14 +152,17 @@
           const square = document.createElement("div");
           square.classList.add("cube-square");
           if (i === 4) {
-            square.style.backgroundColor = fixedCenters[face];
+            square.style.backgroundColor = colorMap[fixedCenters[face]];
             square.dataset.fixed = "true";
+            square.dataset.color = fixedCenters[face];
           } else {
             square.style.backgroundColor = "#ccc";
+            square.dataset.color = "";
           }
           square.addEventListener("click", function() {
             if (!this.dataset.fixed) {
-              this.style.backgroundColor = selectedColor;
+              this.style.backgroundColor = colorMap[selectedColor];
+              this.dataset.color = selectedColor;
             }
           });
           faceDiv.appendChild(square);
@@ -155,25 +178,50 @@
             const faceDiv = document.getElementById(face);
             Array.from(faceDiv.children).forEach((square, index) => {
               if (index !== 4) {
-                square.style.backgroundColor = data.cube_state[face][index];
+                square.style.backgroundColor = colorMap[data.cube_state[face][index]];
+                square.dataset.color = data.cube_state[face][index];
               }
             });
           });
-          console.log("Scrambled cube:", data.cube_state);
         })
         .catch(error => {
           console.error("Error fetching scramble:", error);
-          alert("Failed to fetch scramble. Make sure the backend is running.");
+          alert("Failed to fetch scramble. Ensure backend is running.");
         });
     }
 
     function solveCube() {
-      initializeCube();
+      const cubeState = {};
+      faces.forEach(face => {
+        const faceDiv = document.getElementById(face);
+        cubeState[face] = Array.from(faceDiv.children).map(square => square.dataset.color || "U");
+      });
+
+      fetch("http://127.0.0.1:5000/solve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cube_state: cubeState })
+      })
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById("solution").innerText = data.solution ? `Solution: ${data.solution}` : `Error: ${data.error}`;
+        })
+        .catch(error => {
+          console.error("Error solving cube:", error);
+          document.getElementById("solution").innerText = "Failed to solve cube.";
+        });
     }
 
     function resetCube() {
       initializeCube();
+      document.getElementById("solution").innerText = "";
     }
+
+    document.querySelectorAll(".color-box").forEach(box => {
+      box.addEventListener("click", function() {
+        selectedColor = this.dataset.color;
+      });
+    });
 
     document.getElementById("scrambleBtn").addEventListener("click", scrambleCube);
     document.getElementById("solveBtn").addEventListener("click", solveCube);
