@@ -8,12 +8,12 @@ CORS(app, resources={r"/*": {"origins": "*"}})  # Allow frontend requests
 
 # Fixed center colors (based on correct cube net positioning)
 fixed_centers = {
-    "up": "U",
-    "down": "D",
-    "left": "L",
-    "right": "R",
-    "front": "F",
-    "back": "B"
+    "up": "white",
+    "down": "yellow",
+    "left": "orange",
+    "right": "red",
+    "front": "green",
+    "back": "blue"
 }
 
 # Function to generate a scrambled cube state
@@ -48,7 +48,7 @@ def cube_to_kociemba(cube):
     """
 
     face_mapping = {
-        "up":  "U",
+        "up": "U",
         "right": "R",
         "front": "F",
         "down": "D",
@@ -60,7 +60,7 @@ def cube_to_kociemba(cube):
     kociemba_input = ""
     for face in ["up", "right", "front", "down", "left", "back"]:
         for tile in cube[face]:
-            kociemba_input += tile  # Build the cube string
+            kociemba_input += face_mapping[face][0].upper() if tile in fixed_centers.values() else tile[0].upper()
 
     return kociemba_input
 
